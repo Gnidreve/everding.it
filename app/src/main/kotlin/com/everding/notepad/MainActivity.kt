@@ -95,7 +95,6 @@ class MainActivity : Activity() {
         ViewCompat.setOnApplyWindowInsetsListener(editText) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.setPadding(dp(36) + bars.left, dp(16) + bars.top, dp(16) + bars.right, dp(64) + bars.bottom)
-            (view as RuledEditText).topInsetPx = bars.top.toFloat()
             insets
         }
         ViewCompat.requestApplyInsets(editText)
@@ -167,15 +166,14 @@ class MainActivity : Activity() {
     ).toInt()
 }
 
-/** EditText, das linierte Notizblock-Linien scrollsynchron hinter dem Text zeichnet. */
+/**
+ * EditText, das linierte Notizblock-Linien scrollsynchron hinter dem Text
+ * zeichnet. Linienposition kommt direkt aus den echten Font-Metriken
+ * (getBaseline()/getLineHeight()) statt aus geschätzten dp-Werten — damit
+ * sitzt der Text exakt auf der Linie, und beides skaliert zusammen mit der
+ * System-Schriftgröße.
+ */
 class RuledEditText(context: Context, attrs: AttributeSet? = null) : EditText(context, attrs) {
-
-    /** Oberer System-Bar-Inset (Status Bar) — Linien starten erst danach, Hintergrund nicht. */
-    var topInsetPx: Float = 0f
-        set(value) {
-            field = value
-            invalidate()
-        }
 
     private val linePaint = Paint().apply {
         color = LINE_COLOR
@@ -185,9 +183,8 @@ class RuledEditText(context: Context, attrs: AttributeSet? = null) : EditText(co
         color = MARGIN_COLOR
         strokeWidth = 2f
     }
-    private val lineHeightPx = dip(30f)
-    private val topOffsetPx = dip(26f)
     private val marginXPx = dip(28f)
+    private val baselineGapPx = dip(2f)
 
     private fun dip(value: Float) =
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, context.resources.displayMetrics)
@@ -195,13 +192,19 @@ class RuledEditText(context: Context, attrs: AttributeSet? = null) : EditText(co
     override fun onDraw(canvas: Canvas) {
         val top = scrollY
         val bottom = scrollY + height
-        var y = topInsetPx + topOffsetPx
-        while (y < bottom) {
-            if (y >= top - lineHeightPx) {
-                canvas.drawLine(scrollX.toFloat(), y, (scrollX + width).toFloat(), y, linePaint)
+
+        val firstBaseline = baseline
+        val lineH = lineHeight.toFloat()
+        if (firstBaseline >= 0 && lineH > 0f) {
+            var y = firstBaseline + baselineGapPx
+            while (y < bottom + lineH) {
+                if (y >= top - lineH) {
+                    canvas.drawLine(scrollX.toFloat(), y, (scrollX + width).toFloat(), y, linePaint)
+                }
+                y += lineH
             }
-            y += lineHeightPx
         }
+
         // Rote Randlinie läuft bewusst edge-to-edge, auch durch die Safe Areas.
         canvas.drawLine(
             marginXPx + scrollX, top.toFloat(),
