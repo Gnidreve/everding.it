@@ -5,7 +5,6 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputType
@@ -13,12 +12,13 @@ import android.text.TextWatcher
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
-import android.view.View
-import android.view.WindowInsetsController
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.ViewCompat
 import java.io.PrintWriter
 import java.io.StringWriter
 
@@ -35,6 +35,12 @@ private const val MARGIN_COLOR = 0xFFE2857A.toInt()
  * Jede Änderung wird sofort in SharedPreferences geschrieben (apply(), async
  * aber durable); beim Pausieren zusätzlich synchron (commit()) als Netz.
  *
+ * Edge-to-edge: Hintergrund (gelb) und die rote Randlinie laufen bewusst
+ * unter Status-/Navigationsleiste durch (RuledEditText ist MATCH_PARENT,
+ * keine Insets-Clips). Nur der tatsächliche Text + die erste horizontale
+ * Linie bekommen über die Insets ein Padding, damit nichts unter der Leiste
+ * verschwindet.
+ *
  * onCreate ist bewusst komplett in try/catch gewrappt: Diagnose-Build, damit
  * ein Crash als lesbarer Stacktrace auf dem Screen landet statt als
  * "App wurde beendet"-Dialog ohne Logcat-Zugriff.
@@ -47,15 +53,16 @@ class MainActivity : Activity() {
         try {
             super.onCreate(savedInstanceState)
             setupNote()
-            // Braucht eine bereits angehängte DecorView (window.insetsController
-            // ist null davor) — deshalb erst nach setContentView().
-            applyYellowSystemBars()
         } catch (t: Throwable) {
             showCrashScreen(t)
         }
     }
 
     private fun setupNote() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+
         editText = RuledEditText(this).apply {
             setBackgroundColor(PAPER_YELLOW)
             setTextColor(INK_COLOR)
@@ -81,6 +88,22 @@ class MainActivity : Activity() {
             )
         }
         setContentView(root)
+
+        // Hintergrund + rote Linie bleiben edge-to-edge (RuledEditText selbst
+        // bekommt keine Insets-Clips). Nur Text-Padding + erste Zeile weichen
+        // der Status-/Navigationsleiste aus.
+        ViewCompat.setOnApplyWindowInsetsListener(editText) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(dp(36) + bars.left, dp(16) + bars.top, dp(16) + bars.right, dp(64) + bars.bottom)
+            (view as RuledEditText).topInsetPx = bars.top.toFloat()
+            insets
+        }
+        ViewCompat.requestApplyInsets(editText)
+
+        WindowCompat.getInsetsController(window, root).apply {
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
 
         editText.setText(loadText())
         editText.setSelection(editText.text.length)
@@ -129,23 +152,6 @@ class MainActivity : Activity() {
             .commit()
     }
 
-    private fun applyYellowSystemBars() {
-        window.statusBarColor = PAPER_YELLOW
-        window.navigationBarColor = PAPER_YELLOW
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.setSystemBarsAppearance(
-                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
-                    WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
-                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
-                    WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility =
-                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-        }
-    }
-
     private fun loadText(): String =
         getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(PREFS_KEY, "") ?: ""
 
@@ -163,6 +169,13 @@ class MainActivity : Activity() {
 
 /** EditText, das linierte Notizblock-Linien scrollsynchron hinter dem Text zeichnet. */
 class RuledEditText(context: Context, attrs: AttributeSet? = null) : EditText(context, attrs) {
+
+    /** Oberer System-Bar-Inset (Status Bar) — Linien starten erst danach, Hintergrund nicht. */
+    var topInsetPx: Float = 0f
+        set(value) {
+            field = value
+            invalidate()
+        }
 
     private val linePaint = Paint().apply {
         color = LINE_COLOR
@@ -182,13 +195,14 @@ class RuledEditText(context: Context, attrs: AttributeSet? = null) : EditText(co
     override fun onDraw(canvas: Canvas) {
         val top = scrollY
         val bottom = scrollY + height
-        var y = topOffsetPx
+        var y = topInsetPx + topOffsetPx
         while (y < bottom) {
             if (y >= top - lineHeightPx) {
                 canvas.drawLine(scrollX.toFloat(), y, (scrollX + width).toFloat(), y, linePaint)
             }
             y += lineHeightPx
         }
+        // Rote Randlinie läuft bewusst edge-to-edge, auch durch die Safe Areas.
         canvas.drawLine(
             marginXPx + scrollX, top.toFloat(),
             marginXPx + scrollX, bottom.toFloat(), marginPaint,
