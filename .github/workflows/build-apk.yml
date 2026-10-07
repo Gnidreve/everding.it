@@ -3,6 +3,9 @@ name: Build APK (manual, native Gradle)
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build APK
