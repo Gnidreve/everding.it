@@ -1,4 +1,4 @@
-name: Build APK (manual)
+name: Build APK (manual, native Gradle)
 
 on:
   workflow_dispatch:
@@ -17,19 +17,14 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-          cache: 'gradle'
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
-          channel: stable
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
+          gradle-version: "8.14"
 
       - name: Build APK (debug-signiert, Wegwerfprojekt)
-        run: flutter build apk --release --target-platform android-arm64 --build-number=${{ github.run_number }}
+        run: gradle :app:assembleRelease
 
       - name: Delete old latest release
         run: gh release delete latest --yes --cleanup-tag 2>/dev/null || true
@@ -39,7 +34,7 @@ jobs:
       - name: Create new latest release
         run: |
           gh release create latest \
-            build/app/outputs/flutter-apk/app-release.apk \
+            app/build/outputs/apk/release/app-release.apk \
             --title "Notizblock – Latest Build" \
             --notes "Build ${{ github.run_number }} — Commit ${{ github.sha }} — $(date +'%d.%m.%Y %H:%M')" \
             --prerelease

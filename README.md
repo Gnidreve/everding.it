@@ -2,23 +2,24 @@
 
 Ein gelber Notizblock. Eine Seite, nichts weiter.
 
-Kein Header, keine Sidebar, keine Tabs, keine Navigation — ein einziges
-scrollbares, liniertes Notizblatt. Alles, was getippt wird, wird sofort
-persistiert (`shared_preferences`), überlebt also App-Kill und Neustart
-auch ohne dass die App zwischenzeitlich im Speicher war.
+Natives Android (Kotlin, kein Flutter, keine Runtime-Engine) — eine Activity,
+ein `EditText` mit selbstgezeichneten linierten Zeilen, `SharedPreferences`
+für sofortige Persistenz bei jedem Tastendruck.
 
-Wegwerfprojekt. Keine Tests, kein CI-Gate, kein Anspruch auf Dauerhaftigkeit.
+Wegwerfprojekt. Keine Tests, kein CI-Gate.
 
 ## Build
 
 GitHub Actions, manuell getriggert (`workflow_dispatch`) über
-`.github/workflows/build-apk.yml`. Baut eine Android-Release-APK
-(debug-signiert, kein eigenes Keystore nötig) und legt sie als
-GitHub-Release `latest` in diesem Repo ab.
+`.github/workflows/build-apk.yml`. Baut die Release-APK direkt mit
+`gradle :app:assembleRelease` (debug-signiert, kein eigenes Keystore) und
+legt sie als GitHub-Release `latest` in diesem Repo ab.
 
 ## Lokal
 
 ```bash
-flutter pub get
-flutter run
+./gradlew :app:assembleRelease
 ```
+
+(Gradle-Wrapper ist nicht eingecheckt — `gradle wrapper` einmal lokal
+laufen lassen, oder direkt mit installiertem `gradle` bauen.)

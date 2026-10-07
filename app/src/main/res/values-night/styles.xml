@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App ist immer gelb, unabhängig vom System-Darkmode. -->
+    <style name="AppTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/ic_launcher_background</item>
+    </style>
+</resources>
