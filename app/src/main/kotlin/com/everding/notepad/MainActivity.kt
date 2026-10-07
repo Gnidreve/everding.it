@@ -21,7 +21,7 @@ private const val PREFS_NAME = "notizblock"
 private const val PREFS_KEY = "note_text"
 private const val PAPER_YELLOW = 0xFFFFF3B0.toInt()
 private const val INK_COLOR = 0xFF2E2A1F.toInt()
-private const val HINT_COLOR = 0x802E2A1F
+private const val HINT_COLOR = 0x802E2A1F.toInt()
 private const val LINE_COLOR = 0x33000000
 private const val MARGIN_COLOR = 0xFFE2857A.toInt()
 
