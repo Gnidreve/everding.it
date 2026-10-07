@@ -3,6 +3,7 @@ package com.everding.notepad
 import android.app.Activity
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.os.Build
 import android.os.Bundle
@@ -16,6 +17,10 @@ import android.view.View
 import android.view.WindowInsetsController
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import java.io.PrintWriter
+import java.io.StringWriter
 
 private const val PREFS_NAME = "notizblock"
 private const val PREFS_KEY = "note_text"
@@ -29,15 +34,26 @@ private const val MARGIN_COLOR = 0xFFE2857A.toInt()
  * Einzige Seite der App: ein endlos scrollbares, gelbes Notizblatt.
  * Jede Änderung wird sofort in SharedPreferences geschrieben (apply(), async
  * aber durable); beim Pausieren zusätzlich synchron (commit()) als Netz.
+ *
+ * onCreate ist bewusst komplett in try/catch gewrappt: Diagnose-Build, damit
+ * ein Crash als lesbarer Stacktrace auf dem Screen landet statt als
+ * "App wurde beendet"-Dialog ohne Logcat-Zugriff.
  */
 class MainActivity : Activity() {
 
     private lateinit var editText: RuledEditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        applyYellowSystemBars()
+        try {
+            super.onCreate(savedInstanceState)
+            applyYellowSystemBars()
+            setupNote()
+        } catch (t: Throwable) {
+            showCrashScreen(t)
+        }
+    }
 
+    private fun setupNote() {
         editText = RuledEditText(this).apply {
             setBackgroundColor(PAPER_YELLOW)
             setTextColor(INK_COLOR)
@@ -50,7 +66,6 @@ class MainActivity : Activity() {
                 InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
             setSingleLine(false)
             setHorizontallyScrolling(false)
-            background = null
         }
 
         val root = FrameLayout(this).apply {
@@ -80,8 +95,32 @@ class MainActivity : Activity() {
         )
     }
 
+    private fun showCrashScreen(t: Throwable) {
+        val sw = StringWriter()
+        t.printStackTrace(PrintWriter(sw))
+        val textView = TextView(this).apply {
+            text = "Notizblock ist beim Start gecrasht:\n\n${sw}"
+            setTextIsSelectable(true)
+            setTextColor(Color.RED)
+            textSize = 12f
+            setPadding(dp(16), dp(48), dp(16), dp(48))
+        }
+        val scroll = ScrollView(this).apply {
+            setBackgroundColor(Color.WHITE)
+            addView(textView)
+        }
+        try {
+            setContentView(scroll)
+        } catch (inner: Throwable) {
+            // Wenn selbst das fehlschlägt, geben wir auf und lassen den Absturz
+            // regulär passieren (inklusive System-Dialog).
+            throw inner
+        }
+    }
+
     override fun onPause() {
         super.onPause()
+        if (!::editText.isInitialized) return
         getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putString(PREFS_KEY, editText.text.toString())
