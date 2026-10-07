@@ -46,8 +46,10 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         try {
             super.onCreate(savedInstanceState)
-            applyYellowSystemBars()
             setupNote()
+            // Braucht eine bereits angehängte DecorView (window.insetsController
+            // ist null davor) — deshalb erst nach setContentView().
+            applyYellowSystemBars()
         } catch (t: Throwable) {
             showCrashScreen(t)
         }
