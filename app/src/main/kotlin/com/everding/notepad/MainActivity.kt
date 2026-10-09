@@ -2,23 +2,30 @@ package com.everding.notepad
 
 import android.app.Activity
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Typeface
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputType
+import android.text.TextUtils
 import android.text.TextWatcher
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.View
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.ViewCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import java.io.PrintWriter
 import java.io.StringWriter
 
@@ -26,6 +33,9 @@ private const val INK_COLOR = 0xFF2E2A1F.toInt()
 private const val HINT_COLOR = 0x802E2A1F.toInt()
 private const val LINE_COLOR = 0x33000000
 private const val MARGIN_COLOR = 0xFFE2857A.toInt()
+
+// Statische Platzhalter für die Sidebar — noch ohne Funktion (Feeling-Test).
+private val SIDEBAR_ITEMS = listOf("Einkaufsliste", "Ideen", "Arbeit", "Privat", "Ohne Titel")
 
 /**
  * Einzige Seite der App: ein endlos scrollbares, gelbes Notizblatt.
@@ -45,6 +55,7 @@ private const val MARGIN_COLOR = 0xFFE2857A.toInt()
 class MainActivity : Activity() {
 
     private lateinit var editText: RuledEditText
+    private lateinit var drawer: DrawerLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         try {
@@ -52,6 +63,14 @@ class MainActivity : Activity() {
             setupNote()
         } catch (t: Throwable) {
             showCrashScreen(t)
+        }
+    }
+
+    override fun onBackPressed() {
+        if (::drawer.isInitialized && drawer.isDrawerOpen(Gravity.START)) {
+            drawer.closeDrawer(Gravity.START)
+        } else {
+            super.onBackPressed()
         }
     }
 
@@ -74,7 +93,7 @@ class MainActivity : Activity() {
             setHorizontallyScrolling(false)
         }
 
-        val root = FrameLayout(this).apply {
+        val content = FrameLayout(this).apply {
             setBackgroundColor(PAPER_YELLOW)
             addView(
                 editText,
@@ -84,6 +103,21 @@ class MainActivity : Activity() {
                 ),
             )
         }
+        // Edge-Swipe von links öffnet die Sidebar, kein Button.
+        val root = DrawerLayout(this).apply {
+            addView(
+                content,
+                DrawerLayout.LayoutParams(
+                    DrawerLayout.LayoutParams.MATCH_PARENT,
+                    DrawerLayout.LayoutParams.MATCH_PARENT,
+                ),
+            )
+            addView(
+                buildSidebar(),
+                DrawerLayout.LayoutParams(dp(280), DrawerLayout.LayoutParams.MATCH_PARENT, Gravity.START),
+            )
+        }
+        drawer = root
         setContentView(root)
 
         // Hintergrund + rote Linie bleiben edge-to-edge (RuledEditText selbst
@@ -114,6 +148,63 @@ class MainActivity : Activity() {
                 }
             },
         )
+    }
+
+    private fun buildSidebar(): View {
+        val title = TextView(this).apply {
+            text = "Notepad--"
+            setTextColor(INK_COLOR)
+            textSize = 26f
+            setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(24), dp(24), dp(24), dp(20))
+        }
+        val divider = View(this).apply { setBackgroundColor(LINE_COLOR) }
+        val list = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            SIDEBAR_ITEMS.forEach { addView(sidebarRow(it)) }
+        }
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(PAPER_YELLOW)
+            addView(title)
+            addView(divider, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1)))
+            addView(list)
+            // Status-/Navigationsleiste: Sidebar bleibt edge-to-edge, Inhalt weicht aus.
+            ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
+                val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+                view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+                insets
+            }
+        }
+    }
+
+    private fun sidebarRow(label: String): View {
+        val labelView = TextView(this).apply {
+            text = label
+            setTextColor(INK_COLOR)
+            textSize = 16f
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+        }
+        // Stift: rein optisch, kein Klick-Handler.
+        val pencil = ImageView(this).apply {
+            setImageResource(R.drawable.ic_pencil)
+            imageTintList = ColorStateList.valueOf(HINT_COLOR)
+            contentDescription = "Umbenennen"
+        }
+        val ripple = TypedValue().also {
+            theme.resolveAttribute(android.R.attr.selectableItemBackground, it, true)
+        }
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = dp(52)
+            setPadding(dp(24), 0, dp(16), 0)
+            setBackgroundResource(ripple.resourceId)
+            isClickable = true
+            addView(labelView, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(pencil, LinearLayout.LayoutParams(dp(20), dp(20)))
+        }
     }
 
     private fun showCrashScreen(t: Throwable) {

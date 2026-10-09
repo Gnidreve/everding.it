@@ -35,4 +35,6 @@ android {
 dependencies {
     // Für robustes Edge-to-Edge-/Insets-Handling (Android 15 erzwingt das ab targetSdk 35).
     implementation("androidx.core:core-ktx:1.13.1")
+    // Sidebar: DrawerLayout liefert Edge-Swipe ohne eigenen Button.
+    implementation("androidx.drawerlayout:drawerlayout:1.2.0")
 }
