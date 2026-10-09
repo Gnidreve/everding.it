@@ -77,7 +77,9 @@ class MainActivity : Activity() {
 
     private fun setupNote() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        window.statusBarColor = Color.TRANSPARENT
+        // Statusleiste gelb statt transparent: sonst schimmert das System-Schwarz durch.
+        window.statusBarColor = PAPER_YELLOW
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(PAPER_YELLOW))
         window.navigationBarColor = Color.TRANSPARENT
 
         editText = RuledEditText(this).apply {
@@ -106,6 +108,8 @@ class MainActivity : Activity() {
         }
         // Edge-Swipe von links öffnet die Sidebar, kein Button.
         val root = DrawerLayout(this).apply {
+            setBackgroundColor(PAPER_YELLOW)
+            fitsSystemWindows = false
             addView(
                 content,
                 DrawerLayout.LayoutParams(
