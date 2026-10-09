@@ -126,9 +126,21 @@ class MainActivity : Activity() {
         // der Status-/Navigationsleiste aus.
         ViewCompat.setOnApplyWindowInsetsListener(editText) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(dp(36) + bars.left, dp(16) + bars.top, dp(16) + bars.right, dp(64) + bars.bottom)
-            // Tastatur weg -> Ansichtsmodus ohne Cursor.
-            if (!insets.isVisible(WindowInsetsCompat.Type.ime())) {
+            // Unten endet der sichtbare Textbereich über der Tastatur (Fenster wird nicht
+            // verkleinert, siehe adjustNothing im Manifest). Der Cursor bleibt so immer
+            // auf einer Linie, die oberhalb der Tastatur sichtbar ist.
+            val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+            val bottomPad = if (imeVisible) {
+                insets.getInsets(WindowInsetsCompat.Type.ime()).bottom + dp(24)
+            } else {
+                dp(64) + bars.bottom
+            }
+            view.setPadding(dp(36) + bars.left, dp(16) + bars.top, dp(16) + bars.right, bottomPad)
+            if (imeVisible) {
+                // Nach Padding-Änderung den Cursor erneut in den sichtbaren Bereich holen.
+                editText.post { editText.bringPointIntoView(editText.selectionEnd) }
+            } else {
+                // Tastatur weg -> Ansichtsmodus ohne Cursor.
                 editText.isCursorVisible = false
             }
             insets
