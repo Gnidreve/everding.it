@@ -16,6 +16,7 @@ import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -126,8 +127,13 @@ class MainActivity : Activity() {
         ViewCompat.setOnApplyWindowInsetsListener(editText) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.setPadding(dp(36) + bars.left, dp(16) + bars.top, dp(16) + bars.right, dp(64) + bars.bottom)
+            // Tastatur weg -> Ansichtsmodus ohne Cursor.
+            if (!insets.isVisible(WindowInsetsCompat.Type.ime())) {
+                editText.isCursorVisible = false
+            }
             insets
         }
+        editText.setOnClickListener { enterEditMode() }
         ViewCompat.requestApplyInsets(editText)
 
         WindowCompat.getInsetsController(window, root).apply {
@@ -137,6 +143,7 @@ class MainActivity : Activity() {
 
         editText.setText(loadText())
         editText.setSelection(editText.text.length)
+        editText.isCursorVisible = false
         editText.requestFocus()
 
         editText.addTextChangedListener(
@@ -148,6 +155,13 @@ class MainActivity : Activity() {
                 }
             },
         )
+    }
+
+    // Tipp irgendwo ins Blatt: Cursor an, Tastatur auf.
+    private fun enterEditMode() {
+        editText.isCursorVisible = true
+        editText.requestFocus()
+        getSystemService(InputMethodManager::class.java)?.showSoftInput(editText, 0)
     }
 
     private fun buildSidebar(): View {
