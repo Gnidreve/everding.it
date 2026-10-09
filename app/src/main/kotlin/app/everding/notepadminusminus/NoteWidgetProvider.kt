@@ -1,4 +1,4 @@
-package com.everding.notepad
+package app.everding.notepadminusminus
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager

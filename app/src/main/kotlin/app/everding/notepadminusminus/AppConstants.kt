@@ -1,4 +1,4 @@
-package com.everding.notepad
+package app.everding.notepadminusminus
 
 // Geteilt zwischen MainActivity, NoteWidgetProvider und WidgetConfigureActivity.
 const val PREFS_NAME = "notizblock"

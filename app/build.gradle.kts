@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.everding.notepad"
+    namespace = "app.everding.notepadminusminus"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.everding.notepad"
+        applicationId = "app.everding.notepadminusminus"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

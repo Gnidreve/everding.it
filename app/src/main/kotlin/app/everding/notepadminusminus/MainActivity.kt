@@ -1,4 +1,4 @@
-package com.everding.notepad
+package app.everding.notepadminusminus
 
 import android.app.Activity
 import android.content.Context
@@ -211,7 +211,7 @@ class MainActivity : Activity() {
         val sw = StringWriter()
         t.printStackTrace(PrintWriter(sw))
         val textView = TextView(this).apply {
-            text = "Notizblock ist beim Start gecrasht:\n\n${sw}"
+            text = "Notepad-- ist beim Start gecrasht:\n\n${sw}"
             setTextIsSelectable(true)
             setTextColor(Color.RED)
             textSize = 12f
